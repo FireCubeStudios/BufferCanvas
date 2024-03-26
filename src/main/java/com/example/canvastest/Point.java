@@ -1,25 +1,19 @@
 package com.example.canvastest;
 
+import javafx.scene.paint.Color;
+
 import java.util.ArrayList;
 
-public class Point implements IDrawable {
+public class Point extends Drawable {
     public int x;
     public int y;
-
-    public int[] cache;
     public int size;
-    public Point(int x, int y, int size)
+    public Point(int x, int y, int size, Color color)
     {
+        super(color);
         this.x = x;
         this.y = y;
         this.size = size;
-    }
-
-    @Override
-    public int[] getPoints() {
-        if(cache == null)
-            draw();
-        return cache;
     }
 
     public void draw() {

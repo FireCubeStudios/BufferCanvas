@@ -8,10 +8,10 @@ import javafx.stage.Stage;
 import java.io.IOException;
 
 public class HelloApplication extends Application {
-    BufferCanvasView view;
+    GPUBufferUICanvasView view;
     @Override
     public void start(Stage stage) throws IOException {
-        view = new BufferCanvasView(stage);
+        view = new GPUBufferUICanvasView(stage);
       /*  FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("hello-view.fxml"));
         Scene scene = new Scene(fxmlLoader.load(), 320, 240);
         stage.setTitle("Hello!");

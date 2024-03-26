@@ -5,26 +5,20 @@ import javafx.scene.paint.Color;
 import java.util.ArrayList;
 import java.util.stream.IntStream;
 
-public class Line implements IDrawable {
+public class Line extends Drawable {
     public int x1;
     public int y1;
     public int x2;
     public int y2;
-
-    public int[] cache;
     public int size;
-    public Line(int x1, int y1, int x2, int y2)
+    public Line(int x1, int y1, int x2, int y2, int size, Color color)
     {
+        super(color);
         this.x1 = x1;
         this.y1 = y1;
         this.x2 = x2;
         this.y2 = y2;
-    }
-
-    public int[] getPoints() {
-        if(cache == null)
-            draw();
-        return cache;
+        this.size = size;
     }
 
     public void draw() {
@@ -39,9 +33,27 @@ public class Line implements IDrawable {
         int x = x1;
         int y = y1;
 
+        // For thick lines, we need to adjust the loop based on size
+        int thicknessAdjustmentX = 0;
+        int thicknessAdjustmentY = 0;
+
+        if (size > 1) {
+            int halfSize = size / 2;
+            if (dx > dy) {
+                thicknessAdjustmentY = halfSize;
+            } else {
+                thicknessAdjustmentX = halfSize;
+            }
+        }
+
         while (true) {
-            cacheList.add(x);
-            cacheList.add(y);
+            // Add the points for the current pixel
+            for (int i = -thicknessAdjustmentX; i <= thicknessAdjustmentX; i++) {
+                for (int j = -thicknessAdjustmentY; j <= thicknessAdjustmentY; j++) {
+                    cacheList.add(x + i);
+                    cacheList.add(y + j);
+                }
+            }
 
             if (x == x2 && y == y2) {
                 break;

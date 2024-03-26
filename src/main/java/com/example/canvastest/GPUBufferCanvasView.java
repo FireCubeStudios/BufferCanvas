@@ -69,8 +69,13 @@ public class GPUBufferCanvasView {
         kernel.setPoints(points, toARGB(Color.WHITE));
         kernel.setMode(1);
 
+        kernel.execute(100000000);
+        currentBuffer.setPixels(BACKGROUND);
+
         long startTime = System.nanoTime();
 
+        kernel.setPoints(points, toARGB(Color.BLACK));
+        kernel.setMode(1);
         kernel.execute(100000000);
         currentBuffer.setPixels(BACKGROUND);
 
@@ -126,9 +131,7 @@ public class GPUBufferCanvasView {
                                 WritableImageView buffer = fullBuffers.take();
 
                                 // add code to show this new full buffer
-                                BorderPane pane = new BorderPane(buffer);
-                                Scene scene = new Scene(pane);
-                                primaryStage.setScene(scene);
+                                primaryStage.getScene().setRoot(new BorderPane(buffer));
 
                                 // add code to clear current buffer
                                 currentBuffer.updateBuffer();

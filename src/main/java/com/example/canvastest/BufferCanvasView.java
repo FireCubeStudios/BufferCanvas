@@ -37,7 +37,7 @@ public class BufferCanvasView {
     private static final int[] BACKGROUND = new int[WIDTH * HEIGHT];
     private WritableImageView currentBuffer = new WritableImageView(WIDTH, HEIGHT);
     private Random random = new Random();
-    private IDrawable[] points = new IDrawable[10000];
+    private IDrawable[] points = new IDrawable[1000];
 
     private Transform Matrix = new Transform();
     public BufferCanvasView(Stage primaryStage) {
@@ -51,18 +51,42 @@ public class BufferCanvasView {
         primaryStage.show();
 
         ThreadLocalRandom random = ThreadLocalRandom.current();
-        IntStream.range(0, 10000).parallel().forEach(ii -> {
-            if(ii % 2 == 0)
-                points[ii] = new Point(random.nextInt(2, WIDTH - 1), random.nextInt(2, HEIGHT - 1), random.nextInt(1, 5));
-            points[ii] = new Line(random.nextInt(2, WIDTH - 400), random.nextInt(2, HEIGHT - 400),
-                    random.nextInt(2, WIDTH - 300), random.nextInt(2, HEIGHT - 300));
+        IntStream.range(0, 1000).parallel().forEach(ii -> {
+            if(ii % 2 == 0) // add random point
+                points[ii] = new Point(random.nextInt(2, WIDTH - 1), random.nextInt(2, HEIGHT - 1), random.nextInt(1, 5),
+                        Color.rgb(
+                                random.nextInt(256),
+                                random.nextInt(256),
+                                random.nextInt(256)));
+            else if(ii % 5 == 0) {
+                // Generate random vertices for the polygon
+                int numVertices = 5; // Number of vertices
+                int[] xPoints = new int[numVertices];
+                int[] yPoints = new int[numVertices];
+                Random rand = new Random();
+                for (int i = 0; i < numVertices; i++) {
+                    xPoints[i] = rand.nextInt(2, WIDTH - 4); // Limiting x-coordinates to 400 for example
+                    yPoints[i] = rand.nextInt(2, HEIGHT - 4); // Limiting y-coordinates to 400 for example
+                }
+                points[ii] = new Polygon(xPoints, yPoints,
+                        Color.rgb(
+                                random.nextInt(256),
+                                random.nextInt(256),
+                                random.nextInt(256)));
+            }
+            else // add random line
+                points[ii] = new Line(random.nextInt(2, WIDTH - 4), random.nextInt(2, HEIGHT - 4),
+                random.nextInt(2, WIDTH - 300), random.nextInt(2, HEIGHT - 300), random.nextInt(1, 5),
+                        Color.rgb(
+                                random.nextInt(256),
+                                random.nextInt(256),
+                                random.nextInt(256)));
         });
 
         Draw();
         DrawUI(primaryStage);
        // setupFPS();
 
-        // FPS PRINTING CODE
         ScheduledService<Void> translator = new ScheduledService<>() {
             @Override
             protected Task<Void> createTask() {
@@ -104,7 +128,7 @@ public class BufferCanvasView {
         for (int i = 0; i < BUFFER_SIZE; i++)
             emptyBuffers.add(new WritableImageView(WIDTH, HEIGHT));
     }
-
+private int count = 0;
     public void Draw()
     {
         long now = System.nanoTime();
@@ -123,13 +147,15 @@ public class BufferCanvasView {
                 int[] positions = points[ii].getPoints();
                 if(positions.length < 1000)
                     for(int i = 0; i < positions.length - 1; i += 2) {
-                        newBuffer.setArgb(positions[i], positions[i + 1], toARGB(Color.WHITE));
+                        count++;
+                        newBuffer.setArgb(positions[i], positions[i + 1], toARGB(points[ii].getColor()));
                     }
                 else
                     IntStream.range(0, positions.length - 1)
                     .filter(i -> i % 2 == 0)
                     .forEach(i -> {
-                        newBuffer.setArgb(positions[i], positions[i + 1], toARGB(Color.WHITE));
+                        count++;
+                        newBuffer.setArgb(positions[i], positions[i + 1], toARGB(points[ii].getColor()));
                     });
             });
 
