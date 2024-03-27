@@ -1,5 +1,6 @@
 package com.example.canvastest;
 
+import com.aparapi.Range;
 import javafx.application.Platform;
 import javafx.concurrent.ScheduledService;
 import javafx.concurrent.Task;
@@ -32,7 +33,7 @@ public class GPUBufferUICanvasView {
     // THE IMPORTANT GPU ACCELERATION
     private NEWPixelKernel kernel;
 
-    private int shapeCount = 5000;
+    private int shapeCount = 10000;
     private IDrawable[] shapes = new IDrawable[shapeCount];
     private int[] points;
 
@@ -66,8 +67,8 @@ public class GPUBufferUICanvasView {
         scene.setOnScroll(e -> {
             double delta = e.getDeltaY();
             double scaleFactor = Math.pow(1.1, delta / 100.0); // Adjust this factor as needed
-            Matrix.a *= (float) scaleFactor;
-            Matrix.d *= (float) scaleFactor;
+            Matrix.a *= scaleFactor;
+            Matrix.d *= scaleFactor;
             Draw();
         });
     }
@@ -91,6 +92,7 @@ public class GPUBufferUICanvasView {
         for (IDrawable shape : shapes)
             for (int shapePoint : shape.getPoints())
                     points[currentIndex++] = shapePoint;
+
         kernel.setPoints(points);
         Draw();
     }
@@ -100,13 +102,11 @@ public class GPUBufferUICanvasView {
 
             kernel.setTransform(Matrix);
             kernel.setMode(0);
-            kernel.put(kernel.mode);
-            kernel.execute(BACKGROUND.length);
+            kernel.execute(Range.create(BACKGROUND.length));
 
             kernel.setMode(1);
-            kernel.execute(points.length / 2);
+            kernel.execute(Range.create(points.length / 2));
             kernel.get(kernel.buffer);
-            //currentBuffer = new WritableImageView(WIDTH, HEIGHT);
             currentBuffer.updateBuffer();
             currentBuffer.setPixels(BUFFER);
 
@@ -125,27 +125,27 @@ public class GPUBufferUICanvasView {
         ThreadLocalRandom random = ThreadLocalRandom.current();
         IntStream.range(0, shapeCount).parallel().forEach(ii -> {
             if(ii % 2 == 0) // add random point
-                shapes[ii] = new Point(random.nextInt(2, WIDTH), random.nextInt(2, HEIGHT), random.nextInt(1, 5),
+                shapes[ii] = new Point(random.nextInt(WIDTH, WIDTH * 4), random.nextInt(HEIGHT, HEIGHT * 4), random.nextInt(1, 5),
                         Color.rgb(
                                 random.nextInt(256),
                                 random.nextInt(256),
                                 random.nextInt(256)));
-            else if(ii % 5 == 0) {
+           /* else if(ii % 5 == 0) {
                 // Generate random vertices for the polygon
                 int numVertices = 5; // Number of vertices
                 int[] xPoints = new int[numVertices];
                 int[] yPoints = new int[numVertices];
                 Random rand = new Random();
                 for (int i = 0; i < numVertices; i++) {
-                    xPoints[i] = rand.nextInt(2, WIDTH); // Limiting x-coordinates to 400 for example
-                    yPoints[i] = rand.nextInt(2, HEIGHT); // Limiting y-coordinates to 400 for example
+                    xPoints[i] = rand.nextInt(WIDTH * 2, WIDTH * 4); // Limiting x-coordinates to 400 for example
+                    yPoints[i] = rand.nextInt(HEIGHT * 2, HEIGHT * 4); // Limiting y-coordinates to 400 for example
                 }
                 shapes[ii] = new Polygon(xPoints, yPoints,
                         Color.rgb(
                                 random.nextInt(256),
                                 random.nextInt(256),
                                 random.nextInt(256)));
-            }
+            }*/
             else {
                 shapes[ii] = new Line(random.nextInt(2, WIDTH * 2), random.nextInt(2, HEIGHT * 2),
                         random.nextInt(2, WIDTH * 2), random.nextInt(2, HEIGHT * 2), random.nextInt(1, 5),

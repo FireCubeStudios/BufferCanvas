@@ -11,7 +11,7 @@ public class NEWPixelKernel  extends Kernel {
     public int[] mode = new int[1]; // 0 = draw background, 1 = draw points
     public int[] size = new int[2]; // 0 = width, 1 = height
     public int[] transformedSize = new int[2]; // 0 = width, 1 = height
-    public float[] transform = new float[4];
+    public double[] transform = new double[4];
     // 0 = x translate, 1 = y translate, 2 = scaleX, 3 = scaleY
 
     public NEWPixelKernel(int[] buffer, int[] BACKGROUND, int pointColorARGB, int width, int height) {
@@ -64,6 +64,15 @@ public class NEWPixelKernel  extends Kernel {
                 if(x > 0 && y > 0 && x < size[0] && y < size[1])
                     buffer[((x % size[0])
                             + ((y) % size[1]) * size[0])]
+                            = pointColorARGB[0];
+
+
+                                if(((int)((points[i] * transform[2]) + transform[0])) > 0
+                        && ((int)((points[i + 1] * transform[3]) + transform[1])) > 0
+                        && ((int)((points[i] * transform[2]) + transform[0])) < size[0]
+                        && ((int)((points[i + 1] * transform[3]) + transform[1])) < size[1])
+                    buffer[((((int)((points[i] * transform[2]) + transform[0])) % size[0])
+                            + (((int)((points[i + 1] * transform[3]) + transform[1])) % size[1]) * size[0])]
                             = pointColorARGB[0];*/
 
                 if(((int)((points[i] * transform[2]) + transform[0])) > 0
@@ -71,7 +80,7 @@ public class NEWPixelKernel  extends Kernel {
                         && ((int)((points[i] * transform[2]) + transform[0])) < size[0]
                         && ((int)((points[i + 1] * transform[3]) + transform[1])) < size[1])
                     buffer[((((int)((points[i] * transform[2]) + transform[0])) % size[0])
-                            + (((int)((points[i + 1] * transform[3]) + transform[1])) % size[1]) * size[0])]
+                            + ((int)((points[i + 1] * transform[3]) + transform[1])) * size[0])]
                             = pointColorARGB[0];
             }
         }
