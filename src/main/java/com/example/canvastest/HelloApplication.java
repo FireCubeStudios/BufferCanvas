@@ -28,7 +28,7 @@ public class HelloApplication extends Application {
         var view = new OldView(model, stage);
         var controller = new Controller(model, view);*/
       //  var filename = "C:\\Users\\Dulu\\IdeaProjects\\BufferCanvas\\østerlars.osm.zip";
-        var filename = "C:\\Users\\Dulu\\IdeaProjects\\BufferCanvas\\map.osm";
+        var filename = "D:\\Projects\\CanvasTest\\map.osm";
         var view = new GPUView(filename, stage);
     }
 

@@ -18,18 +18,23 @@ import java.util.stream.IntStream;
 import java.util.zip.ZipInputStream;
 
 public class GPUView {
-    private static final int WIDTH = 1280;
-    private static final int HEIGHT = 720;
+    private int WIDTH = 1280;
+    private int HEIGHT = 720;
     private int[] BACKGROUND = new int[WIDTH * HEIGHT];
     private int[] BUFFER = new int[WIDTH * HEIGHT];
     private WritableImageView currentBuffer = new WritableImageView(WIDTH, HEIGHT);
-    private NEWPixelKernel kernel;
+    private NEWERPIXELKERNEL kernel;
     private int[] points;
+
+    private int[] pointsARGB;
     double lastX = 0;
     double lastY = 0;
     private Transform Matrix = new Transform();
     private OSMData mapData;
+    private Stage primaryStage;
+    private Scene scene;
     public GPUView(String filename, Stage primaryStage) {
+        this.primaryStage = primaryStage;
         try {
             InputStream osmInputStream = null;
             if (filename.endsWith(".osm.zip")) {
@@ -45,13 +50,14 @@ public class GPUView {
             System.out.println(e.getMessage());
         }
 
-        Setup();
-
         primaryStage.setTitle("GPU Buffer");
         BorderPane pane = new BorderPane(currentBuffer);
-        Scene scene = new Scene(pane);
+        scene = new Scene(pane);
+        scene.setRoot(pane);
         primaryStage.setScene(scene);
         primaryStage.show();
+
+        Setup();
 
         scene.setOnMousePressed(e -> {
             lastX = e.getX();
@@ -67,6 +73,16 @@ public class GPUView {
             lastY = e.getY();
         });
 
+        scene.widthProperty().addListener((obs, oldVal, newVal) -> {
+            Resize();
+            Draw();
+        });
+
+        scene.heightProperty().addListener((obs, oldVal, newVal) -> {
+            Resize();
+            Draw();
+        });
+
         scene.setOnScroll(e -> {
             double delta = e.getDeltaY();
             double scaleFactor = Math.pow(1.1, delta / 100.0); // Adjust this factor as needed
@@ -76,35 +92,61 @@ public class GPUView {
         });
     }
 
-    void Setup(){
+    void Resize()
+    {
+        WIDTH = (int) primaryStage.getWidth();
+        HEIGHT = (int) primaryStage.getHeight();
+        BUFFER = new int[WIDTH * HEIGHT];
+        BACKGROUND = new int[WIDTH * HEIGHT];
+        currentBuffer = new WritableImageView(WIDTH, HEIGHT);
+        scene.setRoot(new BorderPane(currentBuffer));
         IntStream.range(0, BACKGROUND.length).parallel().forEach(ii -> {
-            BACKGROUND[ii] = toARGB(Color.RED);
-            BUFFER[ii] = toARGB(Color.RED);
+            BACKGROUND[ii] = toARGB(Color.LIGHTBLUE);
+            BUFFER[ii] = toARGB(Color.LIGHTBLUE);
         });
+        kernel.resize(BUFFER, BACKGROUND, WIDTH, HEIGHT);
+    }
 
-        kernel = new NEWPixelKernel(BUFFER, BACKGROUND, toARGB(Color.WHITE), WIDTH, HEIGHT);
+    void Setup(){
+
+        kernel = new NEWERPIXELKERNEL(BUFFER, BACKGROUND, WIDTH, HEIGHT);
 
         int totalPoints = 0;
         for (var way : mapData.ways)
             totalPoints += way.coords.length;
 
-        points = new int[totalPoints * 100];
+        points = new int[totalPoints * 10];
+        pointsARGB = new int[totalPoints * 10];
         int currentIndex = 0;
         var scale = HEIGHT / (mapData.maxlat - mapData.minlat);
         int ogx = (int)(mapData.ways.getFirst().coords[0] * scale);
         int ogy = (int)(mapData.ways.getFirst().coords[1] * scale);
+
         for (var way : mapData.ways) {
-            for(int i = 0; i < way.coords.length - 4; i += 4)
+            for(int i = 0; i < way.coords.length - 2; i += 2)
+            {
+                int x = ((int)((way.coords[i] * scale))) - ogx;
+                int y = ((int)((way.coords[i + 1] * scale))) - ogy;
+                var l = new Point(x, y, 1, Color.WHITE);
+                for (int shapePoint : l.getPoints())
+                {
+                    int ii = currentIndex++;
+                    points[ii] = shapePoint;
+                    pointsARGB[ii] = toARGB(Color.BLACK);
+                }
+
+            }
+        }
+                   /* for(int i = 0; i < way.coords.length - 4; i += 4)
             {
                 int x = ((int)((way.coords[i] * scale))) - ogx;
                 int y = ((int)((way.coords[i + 1] * scale))) - ogy;
                 int x2 = ((int)((way.coords[ + 2] * scale))) - ogx;
                 int y2 = ((int)((way.coords[i + 3] * scale))) - ogy;
-                var l = new Line(x* 2, y* 2, x2 * 2, y2* 2, 1, Color.WHITE);
+              /*  var l = new Line(x* 2, y* 2, x2 * 2, y2* 2, 1, Color.WHITE);
                 for (int shapePoint : l.getPoints())
                     points[currentIndex++] = shapePoint;
-            }
-        }
+            }*/
        /* for (var way : model.mapData.ways) {
             for(int i = 0; i < way.coords.length - 4; i += 4)
             {
@@ -113,8 +155,10 @@ public class GPUView {
                     points[currentIndex++] = shapePoint;
             }
         }*/
+        System.out.println(currentIndex / 2);
 
-        kernel.setPoints(points);
+        Resize();
+        kernel.setPoints(points, pointsARGB);
         Draw();
     }
 

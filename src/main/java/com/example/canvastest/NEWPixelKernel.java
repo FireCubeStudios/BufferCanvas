@@ -7,7 +7,7 @@ public class NEWPixelKernel  extends Kernel {
     public int[] BACKGROUND;
 
     public int[] points;
-    public int[] pointColorARGB = new int[1];
+    public int[] pointColorARGB;
     public int[] mode = new int[1]; // 0 = draw background, 1 = draw points
     public int[] size = new int[2]; // 0 = width, 1 = height
     public int[] transformedSize = new int[2]; // 0 = width, 1 = height
@@ -75,13 +75,22 @@ public class NEWPixelKernel  extends Kernel {
                             + (((int)((points[i + 1] * transform[3]) + transform[1])) % size[1]) * size[0])]
                             = pointColorARGB[0];*/
 
-                if(((int)((points[i] * transform[2]) + transform[0])) > 0
-                        && ((int)((points[i + 1] * transform[3]) + transform[1])) > 0
-                        && ((int)((points[i] * transform[2]) + transform[0])) < size[0]
-                        && ((int)((points[i + 1] * transform[3]) + transform[1])) < size[1])
-                    buffer[((((int)((points[i] * transform[2]) + transform[0])) % size[0])
-                            + ((int)((points[i + 1] * transform[3]) + transform[1])) * size[0])]
-                            = pointColorARGB[0];
+                /*
+                x = i * 2
+                y = (i * 2) + 1
+                 */
+                if(transform[2] > 1 && transform[3] > 1) {
+                   // special scaling code
+                }
+                else {
+                    if (((int) ((points[i * 2] * transform[2]) + transform[0])) > 0
+                            && ((int) ((points[(i * 2) + 1] * transform[3]) + transform[1])) > 0
+                            && ((int) ((points[i * 2] * transform[2]) + transform[0])) < size[0]
+                            && ((int) ((points[(i * 2) + 1] * transform[3]) + transform[1])) < size[1])
+                        buffer[((((int) ((points[i * 2] * transform[2]) + transform[0])) % size[0])
+                                + ((int) ((points[(i * 2) + 1] * transform[3]) + transform[1])) * size[0])]
+                                = pointColorARGB[0];
+                }
             }
         }
 
