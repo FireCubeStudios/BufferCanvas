@@ -1,9 +1,6 @@
 package com.example.canvastest;
 
-import com.example.canvastest.osm.Controller;
-import com.example.canvastest.osm.GPUView;
-import com.example.canvastest.osm.Model;
-import com.example.canvastest.osm.OldView;
+import com.example.canvastest.osm.*;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -28,8 +25,11 @@ public class HelloApplication extends Application {
         var view = new OldView(model, stage);
         var controller = new Controller(model, view);*/
       //  var filename = "C:\\Users\\Dulu\\IdeaProjects\\BufferCanvas\\østerlars.osm.zip";
-        var filename = "C:\\Users\\Dulu\\IdeaProjects\\BufferCanvas\\map.osm";
-        var view = new GPUView(filename, stage);
+
+       var filename = "C:\\Users\\Dulu\\IdeaProjects\\BufferCanvas\\denmark.osm.pbf";
+        var view = new PBFGPUView(filename, stage);
+       /* var filename = "C:\\Users\\Dulu\\IdeaProjects\\BufferCanvas\\map.osm";
+        var view = new GPUView(filename, stage);*/
     }
 
     public static void main(String[] args) {
