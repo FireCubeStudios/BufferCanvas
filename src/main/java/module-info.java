@@ -3,6 +3,7 @@ module com.example.canvastest {
     requires javafx.fxml;
     requires aparapi;
     requires java.xml;
+    requires parallelpbf;
 
 
     opens com.example.canvastest to javafx.fxml;

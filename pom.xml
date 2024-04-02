@@ -20,6 +20,11 @@
       <version>3.0.0</version>
     </dependency>
     <dependency>
+      <groupId>com.wolt.osm</groupId>
+      <artifactId>parallelpbf</artifactId>
+      <version>0.3.1</version>
+    </dependency>
+    <dependency>
       <groupId>org.openjfx</groupId>
       <artifactId>javafx-controls</artifactId>
       <version>21</version>

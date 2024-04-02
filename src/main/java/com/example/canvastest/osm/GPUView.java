@@ -111,54 +111,53 @@ public class GPUView {
 
         kernel = new NEWERPIXELKERNEL(BUFFER, BACKGROUND, WIDTH, HEIGHT);
 
-        int totalPoints = 0;
-        for (var way : mapData.ways)
-            totalPoints += way.coords.length;
+        long startTime = System.nanoTime();
 
-        points = new int[totalPoints * 10];
-        pointsARGB = new int[totalPoints * 10];
-        int currentIndex = 0;
-        var scale = HEIGHT / (mapData.maxlat - mapData.minlat);
+
+
+        var scale = (HEIGHT / (mapData.maxlat - mapData.minlat));
         int ogx = (int)(mapData.ways.getFirst().coords[0] * scale);
         int ogy = (int)(mapData.ways.getFirst().coords[1] * scale);
 
-        for (var way : mapData.ways) {
-            for(int i = 0; i < way.coords.length - 2; i += 2)
-            {
-                int x = ((int)((way.coords[i] * scale))) - ogx;
-                int y = ((int)((way.coords[i + 1] * scale))) - ogy;
-                var l = new Point(x, y, 1, Color.WHITE);
-                for (int shapePoint : l.getPoints())
-                {
-                    int ii = currentIndex++;
-                    points[ii] = shapePoint;
-                    pointsARGB[ii] = toARGB(Color.BLACK);
-                }
-
+        int totalPoints = 0;
+        int scaleO = 1;
+        for (var way : mapData.ways){
+            for (int i = 0; i < way.coords.length - 2; i += 2) {
+                int x = ((int) ((way.coords[i] * scale))) - ogx;
+                int y = ((int) ((way.coords[i + 1] * scale))) - ogy;
+                var l = new Point(x * scaleO, y * scaleO, 1, Color.WHITE);
+                totalPoints += l.getPoints().length;
             }
         }
-                   /* for(int i = 0; i < way.coords.length - 4; i += 4)
-            {
-                int x = ((int)((way.coords[i] * scale))) - ogx;
-                int y = ((int)((way.coords[i + 1] * scale))) - ogy;
-                int x2 = ((int)((way.coords[ + 2] * scale))) - ogx;
-                int y2 = ((int)((way.coords[i + 3] * scale))) - ogy;
-              /*  var l = new Line(x* 2, y* 2, x2 * 2, y2* 2, 1, Color.WHITE);
-                for (int shapePoint : l.getPoints())
-                    points[currentIndex++] = shapePoint;
-            }*/
-       /* for (var way : model.mapData.ways) {
-            for(int i = 0; i < way.coords.length - 4; i += 4)
-            {
-                var l = new Line((int) way.coords[i], (int) way.coords[i + 1], (int) way.coords[i + 2], (int) way.coords[i + 3], 1, Color.WHITE);
-                for (int shapePoint : l.getPoints())
-                    points[currentIndex++] = shapePoint;
+
+
+        points = new int[totalPoints];
+        pointsARGB = new int[totalPoints];
+
+        int currentIndex = 0;
+        for (var way : mapData.ways) {
+            for (int i = 0; i < way.coords.length - 2; i += 2) {
+                int x = ((int) ((way.coords[i] * scale))) - ogx;
+                int y = ((int) ((way.coords[i + 1] * scale))) - ogy;
+                var l = new Point(x * scaleO, y * scaleO, 1, Color.WHITE);
+                var pointsX = l.getPoints();
+                for (int ii = 0; i < pointsX.length - 1; i += 2) {
+                    int iii = currentIndex += 2;
+                    points[iii] = pointsX[ii];
+                    points[iii + 1] = pointsX[ii + 1];
+                    pointsARGB[iii] = toARGB(Color.BLACK);
+                    pointsARGB[iii + 1] = toARGB(Color.BLACK);
+                }
             }
-        }*/
-        System.out.println(currentIndex / 2);
+        }
+        System.out.println(totalPoints);
+        System.out.println(currentIndex);
+        System.out.println(points.length);
 
         Resize();
         kernel.setPoints(points, pointsARGB);
+        System.out.println("Elapsed Time: " + ((System.nanoTime() - startTime) / 1000000) + " milliseconds");
+
         Draw();
     }
 

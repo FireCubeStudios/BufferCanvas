@@ -58,7 +58,7 @@ public class NEWPixelKernel  extends Kernel {
         int i = getGlobalId();
 
         if(mode[0] == 1) {
-            if (i < buffer.length) {
+            if (i < buffer.length && i % 2 == 0) {
                 /*int x = (int)((points[i] * transform[2]) + transform[0]);
                 int y = (int)((points[i + 1] * transform[3]) + transform[1]);
                 if(x > 0 && y > 0 && x < size[0] && y < size[1])
