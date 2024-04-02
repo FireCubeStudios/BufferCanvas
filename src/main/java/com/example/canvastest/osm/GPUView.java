@@ -82,7 +82,6 @@ public class GPUView {
             Resize();
             Draw();
         });
-
         scene.setOnScroll(e -> {
             double delta = e.getDeltaY();
             double scaleFactor = Math.pow(1.1, delta / 100.0); // Adjust this factor as needed

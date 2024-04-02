@@ -6,7 +6,7 @@ public class PBFPixelKernel extends Kernel {
     public int[] buffer;
     public int[] BACKGROUND;
 
-    public double[] points;
+    public int[] points;
     public int[] pointsARGB;
     public int[] mode = new int[1]; // 0 = draw background, 1 = draw points
     public int[] size = new int[2]; // 0 = width, 1 = height
@@ -18,7 +18,7 @@ public class PBFPixelKernel extends Kernel {
         this.buffer = buffer;
         this.BACKGROUND = BACKGROUND;
         this.pointsARGB = new int[10 * 2];
-        this.points = new double[10 * 2];
+        this.points = new int[10 * 2];
         this.mode[0] = 0;
         this.size[0] = width;
         this.size[1] = height;
@@ -57,7 +57,7 @@ public class PBFPixelKernel extends Kernel {
         put(this.buffer);
     }
 
-    public void setPoints(double[] points, int[] pointsARGB) {
+    public void setPoints(int[] points, int[] pointsARGB) {
         this.points = points;
         this.pointsARGB = pointsARGB;
         put(this.points);
@@ -94,7 +94,7 @@ public class PBFPixelKernel extends Kernel {
                                         && (((points[(i * 2) + 1] * transform[3]) + transform[1]) + py) < size[1]) {
                                     buffer[(((int) (((points[i * 2] * transform[2]) + transform[0]) + px) % size[0])
                                             + (int) (((points[(i * 2) + 1] * transform[3]) + transform[1]) + py) * size[0])]
-                                            = pointsARGB[i];
+                                            = pointsARGB[0];
                                 }
                             }
                         }
@@ -102,7 +102,7 @@ public class PBFPixelKernel extends Kernel {
                     else
                         buffer[((((int)((points[i * 2] * transform[2]) + transform[0])) % size[0])
                                 + ((int) ((points[(i * 2) + 1] * transform[3]) + transform[1])) * size[0])]
-                                = pointsARGB[i];
+                                = pointsARGB[0];
                 }
             }
         }

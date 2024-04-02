@@ -1,10 +1,7 @@
 package com.example.canvastest.osm;
 
 import com.aparapi.Range;
-import com.example.canvastest.NEWERPIXELKERNEL;
-import com.example.canvastest.Point;
-import com.example.canvastest.Transform;
-import com.example.canvastest.WritableImageView;
+import com.example.canvastest.*;
 import com.wolt.osm.parallelpbf.ParallelBinaryParser;
 import com.wolt.osm.parallelpbf.entity.Node;
 import javafx.scene.Scene;
@@ -25,7 +22,7 @@ public class PBFGPUView {
     private int[] BACKGROUND = new int[WIDTH * HEIGHT];
     private int[] BUFFER = new int[WIDTH * HEIGHT];
     private WritableImageView currentBuffer = new WritableImageView(WIDTH, HEIGHT);
-    private NEWERPIXELKERNEL kernel;
+    private PBFPixelKernel kernel;
 
     private int[] pointsARGB;
     double lastX = 0;
@@ -37,7 +34,7 @@ public class PBFGPUView {
     private int[] points = new int[48194627 * 2];
     private int nodesIndex = 0;
 
-    private double scale = 82.62484915943543 * 10;
+    private double scale = 82.62484915943543 * 100;
     private double ogx = 55.713486499999945 * scale;
     private double ogy = 11.723541300000003 * scale;
 
@@ -121,13 +118,12 @@ public class PBFGPUView {
 
     void Setup(){
 
-        kernel = new NEWERPIXELKERNEL(BUFFER, BACKGROUND, WIDTH, HEIGHT);
+        kernel = new PBFPixelKernel(BUFFER, BACKGROUND, WIDTH, HEIGHT);
 
         long startTime = System.nanoTime();
 
-        pointsARGB = new int[nodesIndex * 2];
-        for (int i = 0; i < (nodesIndex * 2); i++)
-            pointsARGB[i] = toARGB(Color.BLACK);
+        pointsARGB = new int[1];
+        pointsARGB[0] = toARGB(Color.BLACK);
         System.out.println(points.length);
 
         Resize();

@@ -26,7 +26,7 @@ public class HelloApplication extends Application {
         var controller = new Controller(model, view);*/
       //  var filename = "C:\\Users\\Dulu\\IdeaProjects\\BufferCanvas\\østerlars.osm.zip";
 
-       var filename = "C:\\Users\\Dulu\\IdeaProjects\\BufferCanvas\\denmark.osm.pbf";
+       var filename = "D:\\Projects\\CanvasTest\\denmark-latest.osm.pbf";
         var view = new PBFGPUView(filename, stage);
        /* var filename = "C:\\Users\\Dulu\\IdeaProjects\\BufferCanvas\\map.osm";
         var view = new GPUView(filename, stage);*/
