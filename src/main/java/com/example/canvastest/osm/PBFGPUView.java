@@ -4,6 +4,7 @@ import com.aparapi.Range;
 import com.example.canvastest.*;
 import com.wolt.osm.parallelpbf.ParallelBinaryParser;
 import com.wolt.osm.parallelpbf.entity.Node;
+import com.wolt.osm.parallelpbf.entity.Way;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
@@ -34,16 +35,29 @@ public class PBFGPUView {
     private int[] points = new int[48194627 * 2];
     private int nodesIndex = 0;
 
-    private double scale = 82.62484915943543 * 100;
-    private double ogx = 55.713486499999945 * scale;
-    private double ogy = 11.723541300000003 * scale;
+    private final double scale = 82.62484915943543 * 10;
+    private final double ogx = 55.713486499999945 * scale;
+    private final double ogy = 11.723541300000003 * scale;
 
     private void processNodes(Node node) {
         synchronized (lock) {
-            points[nodesIndex] = (int) (((node.getLon() * scale) - ogy));
-            points[nodesIndex + 1] = (int) -(((node.getLat() * scale) - ogx));
+            points[nodesIndex] = toPoint(node.getLon(), true);
+            points[nodesIndex + 1] = toPoint(node.getLat(), false);
             nodesIndex += 2;
         }
+    }
+
+    private void processWays(com.wolt.osm.parallelpbf.entity.Way way) {
+        synchronized (lock) {
+           // points[nodesIndex] = toPoint(, true);
+          //  points[nodesIndex + 1] = toPoint(node.getLat(), false);
+            nodesIndex += 2;
+        }
+    }
+
+    private int toPoint(double coordinate, boolean isY)
+    {
+        return (int)(((coordinate * scale) - (isY ? ogy : ogx)) * (isY ? 1 : -1));
     }
     public PBFGPUView(String filename, Stage primaryStage) {
         this.primaryStage = primaryStage;

@@ -16,7 +16,7 @@ public abstract class Drawable implements IDrawable {
 
     @Override
     public int[] getPoints() {
-        if(cache == null)
+       // if(cache == null)
             draw();
         return cache;
     }

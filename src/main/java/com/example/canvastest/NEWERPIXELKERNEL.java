@@ -6,8 +6,10 @@ public class NEWERPIXELKERNEL extends Kernel {
     public int[] buffer;
     public int[] BACKGROUND;
 
-    public int[] points;
-    public int[] pointsARGB;
+    public int[] xPoints;
+    public int[] yPoints;
+    public int[] cPoints;
+
     public int[] mode = new int[1]; // 0 = draw background, 1 = draw points
     public int[] size = new int[2]; // 0 = width, 1 = height
     public int[] transformedSize = new int[2]; // 0 = width, 1 = height
@@ -17,8 +19,9 @@ public class NEWERPIXELKERNEL extends Kernel {
     public NEWERPIXELKERNEL(int[] buffer, int[] BACKGROUND, int width, int height) {
         this.buffer = buffer;
         this.BACKGROUND = BACKGROUND;
-        this.pointsARGB = new int[10 * 2];
-        this.points = new int[10 * 2];
+        this.xPoints = new int[10 * 2];
+        this.yPoints = new int[10 * 2];
+        this.cPoints = new int[10 * 2];
         this.mode[0] = 0;
         this.size[0] = width;
         this.size[1] = height;
@@ -26,9 +29,10 @@ public class NEWERPIXELKERNEL extends Kernel {
         setExplicit(true);
         put(this.size);
         put(this.transformedSize);
-        put(this.pointsARGB);
         put(this.buffer);
-        put(this.points);
+        put(this.xPoints);
+        put(this.yPoints);
+        put(this.cPoints);
         put(this.BACKGROUND);
     }
 
@@ -57,11 +61,13 @@ public class NEWERPIXELKERNEL extends Kernel {
         put(this.buffer);
     }
 
-    public void setPoints(int[] points, int[] pointsARGB) {
-        this.points = points;
-        this.pointsARGB = pointsARGB;
-        put(this.points);
-        put(this.pointsARGB);
+    public void setPoints(int[] x, int[] y, int[] c) {
+        this.xPoints = x;
+        this.yPoints = y;
+        this.cPoints = c;
+        put(this.xPoints);
+        put(this.yPoints);
+        put(this.cPoints);
     }
 
     public void setMode(int mode) {
@@ -74,35 +80,35 @@ public class NEWERPIXELKERNEL extends Kernel {
         pixels.set(transformedX, transformedY);     */
     @Override
     public void run() {
-        int i = getGlobalId();
+        int i = getGlobalId(0);
 
         if(mode[0] == 1) {
             if (i < buffer.length) {
-                if ((((points[i * 2] * transform[2]) + transform[0])) > 0
-                        && (((points[(i * 2) + 1] * transform[3]) + transform[1])) > 0
-                        && (((points[i * 2] * transform[2]) + transform[0])) < size[0]
-                        && (((points[(i * 2) + 1] * transform[3]) + transform[1])) < size[1]) {
+                if ((((xPoints[i] * transform[2]) + transform[0])) > 0
+                        && (((yPoints[i] * transform[3]) + transform[1])) > 0
+                        && (((xPoints[i] * transform[2]) + transform[0])) < size[0]
+                        && (((yPoints[i] * transform[3]) + transform[1])) < size[1]) {
 
-                    if(transform[2] > 1 && transform[3] > 1) {
+                 /*   if(transform[2] > 1 && transform[3] > 1) {
                             int t = -((int) (transform[2] / 2));
                             int t2 = (int) (transform[2] / 2);
                             for (int px = t; px <= t2; px += 1) {
                                 for (int py = t; py <= t2; py += 1) {
-                                    if ((((points[i * 2] * transform[2]) + transform[0]) + px) >= 0
-                                            && (((points[i * 2] * transform[2]) + transform[0]) + px) < size[0]
-                                            && (((points[(i * 2) + 1] * transform[3]) + transform[1]) + py) >= 0
-                                            && (((points[(i * 2) + 1] * transform[3]) + transform[1]) + py) < size[1]) {
-                                        buffer[(((int) (((points[i * 2] * transform[2]) + transform[0]) + px) % size[0])
-                                                + (int) (((points[(i * 2) + 1] * transform[3]) + transform[1]) + py) * size[0])]
-                                                = pointsARGB[i];
+                                    if ((((xPoints[i] * transform[2]) + transform[0]) + px) >= 0
+                                            && (((xPoints[i] * transform[2]) + transform[0]) + px) < size[0]
+                                            && (((yPoints[i] * transform[3]) + transform[1]) + py) >= 0
+                                            && (((yPoints[i] * transform[3]) + transform[1]) + py) < size[1]) {
+                                        buffer[(((int) (((xPoints[i] * transform[2]) + transform[0]) + px) % size[0])
+                                                + (int) (((yPoints[i] * transform[3]) + transform[1]) + py) * size[0])]
+                                                = cPoints[i];
                                     }
                                 }
                             }
-                        }
-                        else
-                            buffer[((((int)((points[i * 2] * transform[2]) + transform[0])) % size[0])
-                                    + ((int) ((points[(i * 2) + 1] * transform[3]) + transform[1])) * size[0])]
-                                    = pointsARGB[i];
+                        }*/
+                       // else
+                            buffer[((((int)((xPoints[i] * transform[2]) + transform[0])) % size[0])
+                                    + ((int) ((yPoints[i] * transform[3]) + transform[1])) * size[0])]
+                                    = cPoints[i];
                 }
             }
         }
