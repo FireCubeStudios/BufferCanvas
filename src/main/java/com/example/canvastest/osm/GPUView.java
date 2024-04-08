@@ -117,7 +117,7 @@ public class GPUView {
 
        // System.out.print(mapData.ways.stream().count()); // 78710 ways
         kernel = new NEWERPIXELKERNEL(BUFFER, BACKGROUND, WIDTH, HEIGHT);
-        int totalPoints = 1044688 * 5;
+        int totalPoints = 1044688 * 100;
         xPoints = new int[totalPoints];
         yPoints = new int[totalPoints];
         cPoints = new int[totalPoints];
