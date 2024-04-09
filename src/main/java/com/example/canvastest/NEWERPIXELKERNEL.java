@@ -6,6 +6,8 @@ public class NEWERPIXELKERNEL extends Kernel {
     public int[] buffer;
     public int[] BACKGROUND;
 
+    public int[] lines;
+
     public int[] xPoints;
     public int[] yPoints;
     public int[] cPoints;
@@ -83,7 +85,7 @@ public class NEWERPIXELKERNEL extends Kernel {
         int i = getGlobalId(0);
 
         if(mode[0] == 1) {
-            if (i < buffer.length) {
+            if (cPoints[i] != 0) {
                 if ((((xPoints[i] * transform[2]) + transform[0])) > 0
                         && (((yPoints[i] * transform[3]) + transform[1])) > 0
                         && (((xPoints[i] * transform[2]) + transform[0])) < size[0]
@@ -112,7 +114,6 @@ public class NEWERPIXELKERNEL extends Kernel {
                 }
             }
         }
-
 
         // Draw background to clear canvas
         else if(mode[0] == 0) {

@@ -2,18 +2,20 @@ package com.example.canvastest.osm;
 
 import com.aparapi.Range;
 import com.example.canvastest.*;
-import com.example.canvastest.Line;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.Paint;
-import javafx.scene.transform.Affine;
 import javafx.stage.Stage;
 
+import javafx.animation.AnimationTimer;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import java.util.zip.ZipInputStream;
 
@@ -27,10 +29,8 @@ public class GPUView {
     private int[] xPoints;
     private int[] yPoints;
     private int[] cPoints;
-
-    private int[] pointsARGB;
     double lastX = 0;
-    double a = 1;
+    double a = 4;
     double lastY = 0;
     private Transform Matrix = new Transform();
     private OSMData mapData;
@@ -66,11 +66,24 @@ public class GPUView {
             lastX = e.getX();
             lastY = e.getY();
         });
+        scene.setOnMouseReleased(e -> {
+            double dx = e.getX() - lastX;
+            double dy = e.getY() - lastY;
+            Matrix.e += (float) dx;
+            Matrix.f += (float) dy;
+
+            points();
+            Draw();
+            lastX = e.getX();
+            lastY = e.getY();
+        });
+
         scene.setOnMouseDragged(e -> {
             double dx = e.getX() - lastX;
             double dy = e.getY() - lastY;
             Matrix.e += (float) dx;
             Matrix.f += (float) dy;
+
             Draw();
             lastX = e.getX();
             lastY = e.getY();
@@ -85,16 +98,37 @@ public class GPUView {
             Resize();
             Draw();
         });
+
+
+        scene.setOnScrollFinished(e -> {
+            /*   Matrix.a = 1;
+              Matrix.d = 1;*/
+           /* points();
+            Draw();*/
+        });
         scene.setOnScroll(e -> {
             double delta = e.getDeltaY();
             double scaleFactor = Math.pow(1.1, delta / 100.0); // Adjust this factor as needed
-           // Matrix.a *= (float) scaleFactor;
-            //Matrix.d *= (float) scaleFactor;
             a *= (float) scaleFactor;
-            System.out.println(a);
-            if(a > 1)
+            if (a > 1) {
                 points();
+            }
             Draw();
+            /*if(a * scaleFactor < a)
+            {
+                Matrix.a *= (float) scaleFactor;
+                Matrix.d *= (float) scaleFactor;
+                Draw();
+            }
+            else {
+                a *= (float) scaleFactor;
+                if (a > 1) {
+                    points();
+                }
+                Matrix.a = 1;
+                Matrix.d = 1;
+                Draw();
+            }*/
         });
     }
 
@@ -107,8 +141,8 @@ public class GPUView {
         currentBuffer = new WritableImageView(WIDTH, HEIGHT);
         scene.setRoot(new BorderPane(currentBuffer));
         IntStream.range(0, BACKGROUND.length).parallel().forEach(ii -> {
-            BACKGROUND[ii] = toARGB(Color.LIGHTBLUE);
-            BUFFER[ii] = toARGB(Color.LIGHTBLUE);
+            BACKGROUND[ii] = toARGB(Color.WHITESMOKE);
+            BUFFER[ii] = toARGB(Color.WHITESMOKE);
         });
         kernel.resize(BUFFER, BACKGROUND, WIDTH, HEIGHT);
     }
@@ -117,10 +151,6 @@ public class GPUView {
 
        // System.out.print(mapData.ways.stream().count()); // 78710 ways
         kernel = new NEWERPIXELKERNEL(BUFFER, BACKGROUND, WIDTH, HEIGHT);
-        int totalPoints = 1044688 * 100;
-        xPoints = new int[totalPoints];
-        yPoints = new int[totalPoints];
-        cPoints = new int[totalPoints];
 
         points();
         Resize();
@@ -131,57 +161,77 @@ public class GPUView {
     private void points()
     {
         long startTime = System.nanoTime();
+        xPoints = new int[10446880];
+        yPoints = new int[10446880];
+        cPoints = new int[10446880];
 
         double scale = (HEIGHT / (mapData.maxlat - mapData.minlat)) * a;
         double ogx = (mapData.ways.getFirst().coords[0] * scale);
         double ogy = (mapData.ways.getFirst().coords[1] * scale);
-
-        int currentIndex = 0;
-        for (var way : mapData.ways) {
-            for (int i = 0; i < way.coords.length - 4; i += 4) {
+        // 22ms
+       // int currentIndex = 0;
+        final AtomicInteger[] currentIndex = {new AtomicInteger(0)};
+        IntStream.range(0, mapData.ways.size()).parallel().forEach(ex -> {
+            var way = mapData.ways.get(ex);
+            for (int i = 0; i < way.coords.length - 2; i += 2) {
                 int x = (int)(((way.coords[i] * scale)) - ogx);
                 int y = (int)(((way.coords[i + 1] * scale)) - ogy);
                 int x2 = (int)(((way.coords[i + 2] * scale)) - ogx);
                 int y2 = (int)(((way.coords[i + 3] * scale)) - ogy);
-                var l = new Line(x, y, x2, y2, 1, Color.WHITE);
 
-                if(currentIndex > xPoints.length - 100) return;
+                if(currentIndex[0].get() > xPoints.length - 100) break;
+                if(((((x * Matrix.a) + Matrix.e) > -WIDTH) && (((x * Matrix.a) + Matrix.e) < (WIDTH * 2)))
+                        || ((((y * Matrix.d) + Matrix.f) > -HEIGHT) && (((y * Matrix.d) + Matrix.f) < (HEIGHT * 2)))
+                        || ((((x2 * Matrix.a) + Matrix.e) > -WIDTH) && (((x2 * Matrix.a) + Matrix.e) < (WIDTH * 2)))
+                        || ((((y2 * Matrix.d) + Matrix.f) > -HEIGHT) && (((y2 * Matrix.d) + Matrix.f) < (HEIGHT * 2))))
+                {
+                    var pointsX = LineHelper.line(x, y, x2, y2);
+                    for (int ii = 0; ii < pointsX.length - 1; ii += 2) {
+                        int iii = currentIndex[0].getAndAdd(2);
+                        if(currentIndex[0].get() > xPoints.length - 1) break;
 
-                var pointsX = l.getPoints();
-                // System.out.println("length: " + pointsX.length + " x: " + x + " y: " + y + " x2: " + x2 + " y2: " + y2);
-                for (int ii = 0; ii < pointsX.length - 1; ii += 2) {
-                    int iii = currentIndex += 2;
-                    if(currentIndex > xPoints.length - 100) return;
-                    xPoints[iii] = pointsX[ii];
-                    yPoints[iii] = pointsX[ii + 1];
-                    if(ii > 2 && (ii < pointsX.length - 4))
-                        cPoints[iii] = toARGB(Color.RED);
-                    else
-                        cPoints[iii] = toARGB(Color.BLACK);
+                        xPoints[iii] = pointsX[ii];
+                        yPoints[iii] = pointsX[ii + 1];
+                        cPoints[iii] = (ii > 2 && ii < pointsX.length - 4) ? toARGB(Color.RED) : toARGB(Color.BLACK);
+                    }
+                    // currentIndex = LineHelper.line(x, y, x2, y2, currentIndex, xPoints, yPoints, cPoints, toARGB(Color.BLACK));
                 }
             }
-        }
-        System.out.println(currentIndex);
-        System.out.println(xPoints.length);
+        });
+       /* for (var way : mapData.ways) {
+            for (int i = 0; i < way.coords.length - 2; i += 2) {
+                int x = (int)(((way.coords[i] * scale)) - ogx);
+                int y = (int)(((way.coords[i + 1] * scale)) - ogy);
+                int x2 = (int)(((way.coords[i + 2] * scale)) - ogx);
+                int y2 = (int)(((way.coords[i + 3] * scale)) - ogy);
 
-        kernel.setPoints(xPoints, yPoints, cPoints);
+                if(currentIndex > xPoints.length - 100) break;
+                if(((((x * Matrix.a) + Matrix.e) > -WIDTH) && (((x * Matrix.a) + Matrix.e) < (WIDTH * 2)))
+                        || ((((y * Matrix.d) + Matrix.f) > -HEIGHT) && (((y * Matrix.d) + Matrix.f) < (HEIGHT * 2)))
+                        || ((((x2 * Matrix.a) + Matrix.e) > -WIDTH) && (((x2 * Matrix.a) + Matrix.e) < (WIDTH * 2)))
+                        || ((((y2 * Matrix.d) + Matrix.f) > -HEIGHT) && (((y2 * Matrix.d) + Matrix.f) < (HEIGHT * 2))))
+               {
+                   var pointsX = LineHelper.line(x, y, x2, y2);
+                   for (int ii = 0; ii < pointsX.length - 1; ii += 2) {
+                       int iii = currentIndex += 2;
+                       if(currentIndex > xPoints.length - 1) break;
+
+                       xPoints[iii] = pointsX[ii];
+                       yPoints[iii] = pointsX[ii + 1];
+                       cPoints[iii] = (ii > 2 && ii < pointsX.length - 4) ? toARGB(Color.RED) : toARGB(Color.BLACK);
+                   }
+                  // currentIndex = LineHelper.line(x, y, x2, y2, currentIndex, xPoints, yPoints, cPoints, toARGB(Color.BLACK));
+               }
+            }
+        }*/
+
+        kernel.setPoints(xPoints, yPoints, cPoints); // 0ms
         System.out.println("Points Time: " + ((System.nanoTime() - startTime) / 1000000) + " milliseconds");
-    }
-
-    void pan(double dx, double dy) {
-        Matrix.e += (float) dx;
-        Matrix.f += (float) dy;
-    }
-
-    void zoom(double dx, double dy, double scaleFactor) {
-        pan(-dx, -dy);
-        Matrix.a *= (float) scaleFactor;
-        Matrix.d *= (float) scaleFactor;
-        pan(dx, dy);
+        System.out.println(currentIndex[0]);
     }
 
     void Draw(){
-      //  long startTime = System.nanoTime();
+        long startTime = System.nanoTime();
 
         kernel.setTransform(Matrix);
         kernel.setMode(0);
@@ -193,7 +243,7 @@ public class GPUView {
         currentBuffer.updateBuffer();
         currentBuffer.setPixels(BUFFER);
 
-       // System.out.println("Elapsed Time: " + ((System.nanoTime() - startTime) / 1000000) + " milliseconds");
+        System.out.println("Elapsed Time: " + ((System.nanoTime() - startTime) / 1000000) + " milliseconds");
     }
 
     public static int toARGB(Color color) {
@@ -202,4 +252,28 @@ public class GPUView {
                 | (int) (color.getGreen() * 255) <<  8
                 | (int) (color.getBlue() * 255);
     }
+
+                     /*  var pointsX = LineHelper.line(x, y, x2, y2);
+                   for (int ii = 0; ii < pointsX.length - 1; ii += 2) {
+                       int iii = currentIndex += 2;
+                       if(currentIndex > xPoints.length - 1) break;
+
+                       xPoints[iii] = pointsX[ii];
+                       yPoints[iii] = pointsX[ii + 1];
+                       cPoints[iii] = (ii > 2 && ii < pointsX.length - 4) ? toARGB(Color.RED) : toARGB(Color.BLACK);
+                   }*/
+
+
+       /*     Set<String> valid = new HashSet<>(
+                Arrays.asList("highway", "waterway", "natural", "parking", "leisure", "building", "landuse"
+                ,"farmland","service", "tertiary", "primary", "residential", "footway", "path", "stream", "tree_row"
+                ,"surface", "park", "water", "scrub", "industrial", "yes", "recreation_ground", "industrial"
+                ,"grass", "forest", "farmyard", "meadow"));
+                   /*   boolean validx = false;
+           for(var tag : way.tags)
+           {
+               if(valid.contains(tag.Type)) validx = true;
+           }
+           if(!validx) break;
+*/
 }
