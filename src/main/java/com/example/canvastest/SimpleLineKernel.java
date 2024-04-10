@@ -61,7 +61,7 @@ public class SimpleLineKernel extends Kernel {
             int x2 = (int) ((lines[lineIndex + 2] * transform[2]) + transform[0]);
             int y2 = (int) ((lines[lineIndex + 3] * transform[3]) + transform[1]);
             int colour = lines[lineIndex + 4];
-            if(x1 > 0 || y1 > 0 || x2 > 0 || y2 > 0 || x1 < size[0] || y1 < size[1] || x2 < size[0] || y2 < size[1]) {
+            if((x1 > 0 && x1 < size[0] && y1 > 0 && y1 < size[1]) || (x2 > 0 && 2 < size[0] && y2 > 0 && y2 < size[1])){
                 // Bresenham's line algorithm
                 int dx = Math.abs(x2 - x1);
                 int dy = Math.abs(y2 - y1);

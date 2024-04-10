@@ -56,10 +56,10 @@ public class LineGPUView {
 
         scene.setOnMouseReleased(e ->{
 
-            points();
+           /* points();
             Matrix.a = 1;
             Matrix.d = 1;
-            Draw();
+            Draw();*/
         });
         scene.setOnMousePressed(e -> {
             lastX = e.getX();
@@ -88,8 +88,8 @@ public class LineGPUView {
 
     void Setup(){
         lines = new int[78710 * 20];
-Matrix.a = 1;
-Matrix.d = 1;
+Matrix.a = 20;
+Matrix.d = 20;
         WIDTH = (int) primaryStage.getWidth();
         HEIGHT = (int) primaryStage.getHeight();
         BUFFER = new int[WIDTH * HEIGHT];

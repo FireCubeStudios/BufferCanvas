@@ -28,7 +28,7 @@ public class HelloApplication extends Application {
 
       /* var filename = "D:\\Projects\\CanvasTest\\denmark-latest.osm.pbf";
         var view = new PBFGPUView(filename, stage);*/
-        var filename = "D:\\Projects\\CanvasTest\\map.osm";
+        var filename = "C:\\Users\\Dulu\\IdeaProjects\\BufferCanvas\\map.osm";
         var view = new  LineGPUView(filename, stage);
     }
 
