@@ -54,15 +54,6 @@ public class LineGPUView {
 
         Setup();
 
-        scene.widthProperty().addListener((obs, oldVal, newVal) -> {
-            Resize();
-            Draw();
-        });
-
-        scene.heightProperty().addListener((obs, oldVal, newVal) -> {
-            Resize();
-            Draw();
-        });
         scene.setOnMouseReleased(e ->{
 
            /* points();
@@ -96,34 +87,23 @@ public class LineGPUView {
     }
 
     void Setup(){
-        lines = new int[78710 * 50];
-        Matrix.a = 50;
-        Matrix.d = 50;
-        BACKGROUND = new int[2];
-        BACKGROUND[0] = toARGB(Color.LIGHTBLUE);
-        BUFFER = new int[WIDTH * HEIGHT];
-        WIDTH = (int) primaryStage.getWidth();
-        HEIGHT = (int) primaryStage.getHeight();
-
-        kernel = new SimpleLineKernel(BUFFER, BACKGROUND, WIDTH, HEIGHT);
-        points();;
-        Resize();
-
-        Draw();
-    }
-
-    void Resize()
-    {
+        lines = new int[78710 * 20];
+Matrix.a = 20;
+Matrix.d = 20;
         WIDTH = (int) primaryStage.getWidth();
         HEIGHT = (int) primaryStage.getHeight();
         BUFFER = new int[WIDTH * HEIGHT];
-
+        BACKGROUND = new int[WIDTH * HEIGHT];
         currentBuffer = new WritableImageView(WIDTH, HEIGHT);
         scene.setRoot(new BorderPane(currentBuffer));
-        IntStream.range(0, BUFFER.length).parallel().forEach(ii -> {
+        IntStream.range(0, BACKGROUND.length).parallel().forEach(ii -> {
+            BACKGROUND[ii] = toARGB(Color.LIGHTBLUE);
             BUFFER[ii] = toARGB(Color.LIGHTBLUE);
         });
-        kernel.resize(BUFFER, WIDTH, HEIGHT);
+        kernel = new SimpleLineKernel(BUFFER, BACKGROUND, WIDTH, HEIGHT);
+        points();
+
+        Draw();
     }
 
     private void points()
@@ -136,10 +116,6 @@ public class LineGPUView {
         ThreadLocalRandom random = ThreadLocalRandom.current();
         int currentIndex = 0;
         for (var way : mapData.ways) {
-            int c = toARGB(Color.rgb(
-                    random.nextInt(256),
-                    random.nextInt(256),
-                    random.nextInt(256)));
             for (int i = 0; i < way.coords.length - 2; i += 2) {
                 if(currentIndex > lines.length - 10) break;
 
@@ -154,7 +130,7 @@ public class LineGPUView {
                 lines[iii + 1] = y;
                 lines[iii + 2] = x2;
                 lines[iii + 3] = y2;
-                lines[iii + 4] = c;
+                lines[iii + 4] = toARGB(Color.BLACK);
             }
         }
 
@@ -170,7 +146,7 @@ public class LineGPUView {
 
         kernel.setTransform(Matrix);
         kernel.setMode(0);
-        kernel.execute(Range.create(BUFFER.length));
+        kernel.execute(Range.create(BACKGROUND.length));
 
         kernel.setMode(1);
         kernel.execute(Range.create(lines.length / 5));

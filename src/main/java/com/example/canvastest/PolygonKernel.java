@@ -8,6 +8,8 @@ public class PolygonKernel extends Kernel {
 
     public int[] lines; // format x1, x2, y1, y2, c, (0 = None, 1 = Part of polygon)
     public int[] SCANPOLYGON; // Stores points of visible polygons used for scanline filling
+    public int[] SCANCOLOURS; // Stores colours for scanline polygon filling algorithm stack
+
     public int[] mode = new int[1]; // 0 = draw background, 1 = draw lines, 2 = scanline fill
     public int[] size = new int[2]; // 0 = width, 1 = height
 
@@ -18,7 +20,8 @@ public class PolygonKernel extends Kernel {
         this.buffer = buffer;
         this.BACKGROUND = BACKGROUND;
         this.lines = new int[10 * 2];
-        this.SCANPOLYGON = new int[(width * height) * 2];
+        this.SCANPOLYGON = new int[buffer.length];
+        this.SCANCOLOURS = new int[width * 100];
         this.mode[0] = 0;
         this.size[0] = width;
         this.size[1] = height;
@@ -30,6 +33,7 @@ public class PolygonKernel extends Kernel {
         put(this.lines);
         put(this.BACKGROUND);
         put(this.SCANPOLYGON);
+        put(this.SCANCOLOURS);
     }
 
     public void setTransform(Transform matrix) {
@@ -69,7 +73,7 @@ public class PolygonKernel extends Kernel {
         int i = getGlobalId(0);
 
         if(mode[0] == 1) {
-            int lineIndex = i * 5;
+            int lineIndex = i * 6;
             int x1 = (int) ((lines[lineIndex] * transform[2]) + transform[0]);
             int y1 = (int) ((lines[lineIndex + 1] * transform[3]) + transform[1]);
             int x2 = (int) ((lines[lineIndex + 2] * transform[2]) + transform[0]);
@@ -86,14 +90,9 @@ public class PolygonKernel extends Kernel {
 
                 while (x != x2 || y != y2) {
                     if (x > 0 && y > 0 && x < size[0] && y < size[1]) {
-                        buffer[((x % size[0])
-                                + (y * size[0]))]
-                                = colour;
-                        if(lines[lineIndex + 5] == 1) // Part of polygon
-                        {
-                            SCANPOLYGON[((x % size[0])
-                                    + (y * size[0]))]
-                                    = colour;
+                        buffer[((x % size[0]) + (y * size[0]))] = colour;
+                        if(lines[lineIndex + 5] == 1) { // Part of polygon
+                            SCANPOLYGON[((x % size[0]) + (y * size[0]))] = colour;
                         }
                     }
                     int err2 = 2 * err;
@@ -110,27 +109,60 @@ public class PolygonKernel extends Kernel {
         }
         // Scanline fill polygon
         else if(mode[0] == 2){
-            int row = -1;
-            int oldColour = buffer[((i * size[0]))]; // set old colour to first row
-            int currentColour = buffer[((i * size[0]))]; // set current colour to first row
-            boolean isDrawing = false;
-            while(row < 700)
+            int row = 0;
+            int colourIndex = i * 10;
+            SCANCOLOURS[colourIndex] = buffer[((i * size[0]))]; // set first colour to first row
+            while(row < size[1])
             {
                 row += 1;
-                int position = ((row % size[0]) + (i * size[0]));
-                if(SCANPOLYGON[position] != currentColour && SCANPOLYGON[position] != 0) { // new polygon encountered?
-                    buffer[position] = currentColour;
-                    currentColour = SCANPOLYGON[position];
-                    isDrawing = true;
+                int position = ((i % size[0]) + (row * size[0]));
+                if(SCANPOLYGON[position] != SCANCOLOURS[colourIndex] && SCANPOLYGON[position] != 0) // new polygon encountered
+                {
+                    buffer[position] = SCANPOLYGON[position];
+                    colourIndex = colourIndex + 1;
+                    SCANCOLOURS[colourIndex] = SCANPOLYGON[position];
                 }
-                else {
-                    buffer[position] = currentColour;
-                    currentColour = buffer[position];
+                else if(colourIndex > (i * 10) && SCANPOLYGON[position] == SCANCOLOURS[colourIndex]) // end of current polygon encountered
+                {
+                    buffer[position] = SCANPOLYGON[position];
+                    colourIndex = colourIndex - 1;
+                }
+                else if(colourIndex > (i * 10)) // filling polygon
+                {
+                    buffer[position] = SCANCOLOURS[colourIndex];
                 }
             }
         }
-        // Draw background to clear canvas
-        // Clear scan polygons too?
+        else if(mode[0] == 3)
+        {
+            SCANCOLOURS[i] = 1;
+        }
+        else if(mode[0] == 4){
+            int col = 0;
+            int colourIndex = i * 10;
+            SCANCOLOURS[colourIndex] = buffer[((i % size[0]))]; // set first colour to first column
+            while(col < size[0])
+            {
+                col += 1;
+                int position = ((col % size[0]) + (i * size[0]));
+                if(SCANPOLYGON[position] != SCANCOLOURS[colourIndex] && SCANPOLYGON[position] != 0) // new polygon encountered
+                {
+                    buffer[position] = SCANPOLYGON[position];
+                    colourIndex = colourIndex + 1;
+                    SCANCOLOURS[colourIndex] = SCANPOLYGON[position];
+                }
+                else if(colourIndex > (i * 10) && SCANPOLYGON[position] == SCANCOLOURS[colourIndex]) // end of current polygon encountered
+                {
+                    buffer[position] = SCANPOLYGON[position];
+                    colourIndex = colourIndex - 1;
+                }
+                else if(colourIndex > (i * 10)) // filling polygon
+                {
+                    buffer[position] = SCANCOLOURS[colourIndex];
+                }
+            }
+        }
+        // Draw background to clear canvas and scanned polygons
         else{
             if (i < buffer.length) {
                 buffer[i] = BACKGROUND[0];

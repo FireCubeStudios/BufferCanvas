@@ -16,7 +16,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
 import java.util.zip.ZipInputStream;
 
-public class PolygonGPUView {
+public class PolygonLineGPUView{
     private int WIDTH = 1280;
     private int HEIGHT = 720;
     private int[] BACKGROUND = new int[WIDTH * HEIGHT];
@@ -31,9 +31,9 @@ public class PolygonGPUView {
     private OSMData mapData;
     private Stage primaryStage;
     private Scene scene;
-    public PolygonGPUView(String filename, Stage primaryStage) {
+    public PolygonLineGPUView(String filename, Stage primaryStage) {
         this.primaryStage = primaryStage;
-      /*  try {
+        try {
             InputStream osmInputStream = null;
             if (filename.endsWith(".osm.zip")) {
                 ZipInputStream input  = new ZipInputStream(new FileInputStream(filename));
@@ -47,7 +47,7 @@ public class PolygonGPUView {
         } catch(Exception e) {
             System.out.println(e.getMessage());
         }
-*/
+
         primaryStage.setTitle("GPU Buffer");
         BorderPane pane = new BorderPane(currentBuffer);
         scene = new Scene(pane);
@@ -57,14 +57,12 @@ public class PolygonGPUView {
 
         Setup();
 
-        scene.widthProperty().addListener((obs, oldVal, newVal) -> {
-            Resize();
-            Draw();
-        });
+        scene.setOnMouseReleased(e ->{
 
-        scene.heightProperty().addListener((obs, oldVal, newVal) -> {
-            Resize();
-            Draw();
+           /* points();
+            Matrix.a = 1;
+            Matrix.d = 1;
+            Draw();*/
         });
         scene.setOnMousePressed(e -> {
             lastX = e.getX();
@@ -93,6 +91,8 @@ public class PolygonGPUView {
 
     void Setup(){
         lines = new int[78710 * 6];
+        Matrix.a = 20;
+        Matrix.d = 20;
         BACKGROUND = new int[2];
         BACKGROUND[0] = toARGB(Color.LIGHTBLUE);
         BACKGROUND[1] = toARGB(Color.RED);
@@ -106,7 +106,6 @@ public class PolygonGPUView {
 
         Draw();
     }
-
     void Resize()
     {
         WIDTH = (int) primaryStage.getWidth();
@@ -125,46 +124,36 @@ public class PolygonGPUView {
     {
         long startTime = System.nanoTime();
 
-        int c = toARGB(Color.RED);
-        int c2 = toARGB(Color.BLUE);
+        double scale = (HEIGHT / (mapData.maxlat - mapData.minlat)) * Matrix.a;
+        double ogx = (mapData.ways.getFirst().coords[0] * scale);
+        double ogy = (mapData.ways.getFirst().coords[1] * scale);
+        ThreadLocalRandom random = ThreadLocalRandom.current();
         int currentIndex = 0;
-       // int[] vertices = {100, 100, 500, 100, 500, 500, 100, 500, 100, 100};
-        int[] vertices = {100, 100, 500, 200, 10, 200, 100, 100};
-        int[] vertices2 = {720, 720, 480, 720, 480, 480, 720, 480, 720, 720};
-        for (int i = 0; i < vertices.length - 2; i += 2) {
-            if(currentIndex >= lines.length) break;
+        for (var way : mapData.ways) {
+            int c = toARGB(Color.rgb(
+                    random.nextInt(256),
+                    random.nextInt(256),
+                    random.nextInt(256)));
+            for (int i = 0; i < way.coords.length - 2; i += 2) {
+                if(currentIndex > lines.length - 10) break;
 
-            int x = vertices[i];
-            int y = vertices[i + 1];
-            int x2 = vertices[i + 2];
-            int y2 = vertices[i + 3];
+                int x = (int)(((way.coords[i] * scale)) - ogx);
+                int y = (int)(((way.coords[i + 1] * scale)) - ogy);
+                int x2 = (int)(((way.coords[i + 2] * scale)) - ogx);
+                int y2 = (int)(((way.coords[i + 3] * scale)) - ogy);
 
-            currentIndex += 6;
-            int iii = currentIndex;
-            lines[iii] = x;
-            lines[iii + 1] = y;
-            lines[iii + 2] = x2;
-            lines[iii + 3] = y2;
-            lines[iii + 4] = c;
-            lines[iii + 5] = 1; // is polygon
-        }
-
-for (int i = 0; i < vertices2.length - 2; i += 2) {
-            if(currentIndex >= lines.length) break;
-
-            int x = vertices2[i];
-            int y = vertices2[i + 1];
-            int x2 = vertices2[i + 2];
-            int y2 = vertices2[i + 3];
-
-            currentIndex += 6;
-            int iii = currentIndex;
-            lines[iii] = x;
-            lines[iii + 1] = y;
-            lines[iii + 2] = x2;
-            lines[iii + 3] = y2;
-            lines[iii + 4] = c2;
-            lines[iii + 5] = 1; // is polygon
+                currentIndex += 6;
+                int iii = currentIndex;
+                lines[iii] = x;
+                lines[iii + 1] = y;
+                lines[iii + 2] = x2;
+                lines[iii + 3] = y2;
+                lines[iii + 4] = c;
+                if(way.coords[0] == way.coords[way.coords.length - 2] && way.coords[1] == way.coords[way.coords.length - 1])
+                    lines[iii + 5] = 1;
+                else
+                    lines[iii + 5] = 0;
+            }
         }
 
         kernel.setLines(lines);
@@ -188,9 +177,6 @@ for (int i = 0; i < vertices2.length - 2; i += 2) {
         kernel.execute(Range.create(WIDTH));
 
         kernel.setMode(3);
-        kernel.execute(Range.create(WIDTH * 100));
-
-        kernel.setMode(4);
         kernel.execute(Range.create(HEIGHT));
 
         kernel.get(kernel.buffer);
