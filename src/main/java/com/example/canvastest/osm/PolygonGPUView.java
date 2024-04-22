@@ -1,7 +1,10 @@
 package com.example.canvastest.osm;
 
 import com.aparapi.Range;
-import com.example.canvastest.*;
+import com.example.canvastest.PolygonKernel;
+import com.example.canvastest.SimpleLineKernel;
+import com.example.canvastest.Transform;
+import com.example.canvastest.WritableImageView;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
@@ -13,13 +16,13 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
 import java.util.zip.ZipInputStream;
 
-public class LineGPUView {
+public class PolygonGPUView {
     private int WIDTH = 1280;
     private int HEIGHT = 720;
     private int[] BACKGROUND = new int[WIDTH * HEIGHT];
     private int[] BUFFER = new int[WIDTH * HEIGHT];
     private WritableImageView currentBuffer = new WritableImageView(WIDTH, HEIGHT);
-    private SimpleLineKernel kernel;
+    private PolygonKernel kernel;
     private int[] lines;
 
     double lastX = 0;
@@ -28,9 +31,9 @@ public class LineGPUView {
     private OSMData mapData;
     private Stage primaryStage;
     private Scene scene;
-    public LineGPUView(String filename, Stage primaryStage) {
+    public PolygonGPUView(String filename, Stage primaryStage) {
         this.primaryStage = primaryStage;
-        try {
+      /*  try {
             InputStream osmInputStream = null;
             if (filename.endsWith(".osm.zip")) {
                 ZipInputStream input  = new ZipInputStream(new FileInputStream(filename));
@@ -44,7 +47,7 @@ public class LineGPUView {
         } catch(Exception e) {
             System.out.println(e.getMessage());
         }
-
+*/
         primaryStage.setTitle("GPU Buffer");
         BorderPane pane = new BorderPane(currentBuffer);
         scene = new Scene(pane);
@@ -62,13 +65,6 @@ public class LineGPUView {
         scene.heightProperty().addListener((obs, oldVal, newVal) -> {
             Resize();
             Draw();
-        });
-        scene.setOnMouseReleased(e ->{
-
-           /* points();
-            Matrix.a = 1;
-            Matrix.d = 1;
-            Draw();*/
         });
         scene.setOnMousePressed(e -> {
             lastX = e.getX();
@@ -96,17 +92,16 @@ public class LineGPUView {
     }
 
     void Setup(){
-        lines = new int[78710 * 50];
-        Matrix.a = 50;
-        Matrix.d = 50;
+        lines = new int[78710 * 6];
         BACKGROUND = new int[2];
         BACKGROUND[0] = toARGB(Color.LIGHTBLUE);
+        BACKGROUND[1] = toARGB(Color.RED);
         BUFFER = new int[WIDTH * HEIGHT];
         WIDTH = (int) primaryStage.getWidth();
         HEIGHT = (int) primaryStage.getHeight();
 
-        kernel = new SimpleLineKernel(BUFFER, BACKGROUND, WIDTH, HEIGHT);
-        points();;
+        kernel = new PolygonKernel(BUFFER, BACKGROUND, WIDTH, HEIGHT);
+        points();
         Resize();
 
         Draw();
@@ -130,33 +125,47 @@ public class LineGPUView {
     {
         long startTime = System.nanoTime();
 
-        double scale = (HEIGHT / (mapData.maxlat - mapData.minlat)) * Matrix.a;
-        double ogx = (mapData.ways.getFirst().coords[0] * scale);
-        double ogy = (mapData.ways.getFirst().coords[1] * scale);
-        ThreadLocalRandom random = ThreadLocalRandom.current();
+        int c = toARGB(Color.RED);
+        int c2 = toARGB(Color.BLUE);
         int currentIndex = 0;
-        for (var way : mapData.ways) {
-            int c = toARGB(Color.rgb(
-                    random.nextInt(256),
-                    random.nextInt(256),
-                    random.nextInt(256)));
-            for (int i = 0; i < way.coords.length - 2; i += 2) {
-                if(currentIndex > lines.length - 10) break;
+       // int[] vertices = {100, 100, 500, 100, 500, 500, 100, 500, 100, 100};
+        int[] vertices = {100, 100, 500, 200, 10, 200, 100, 100};
+        int[] vertices2 = {120, 120, 480, 120, 480, 480, 120, 480, 120, 120};
+        for (int i = 0; i < vertices.length - 2; i += 2) {
+            if(currentIndex >= lines.length) break;
 
-                int x = (int)(((way.coords[i] * scale)) - ogx);
-                int y = (int)(((way.coords[i + 1] * scale)) - ogy);
-                int x2 = (int)(((way.coords[i + 2] * scale)) - ogx);
-                int y2 = (int)(((way.coords[i + 3] * scale)) - ogy);
+            int x = vertices[i];
+            int y = vertices[i + 1];
+            int x2 = vertices[i + 2];
+            int y2 = vertices[i + 3];
 
-                currentIndex += 5;
-                int iii = currentIndex;
-                lines[iii] = x;
-                lines[iii + 1] = y;
-                lines[iii + 2] = x2;
-                lines[iii + 3] = y2;
-                lines[iii + 4] = c;
-            }
+            currentIndex += 5;
+            int iii = currentIndex;
+            lines[iii] = x;
+            lines[iii + 1] = y;
+            lines[iii + 2] = x2;
+            lines[iii + 3] = y2;
+            lines[iii + 4] = c;
+            lines[iii + 5] = 1; // is polygon
         }
+
+       /* for (int i = 0; i < vertices2.length - 2; i += 2) {
+            if(currentIndex >= lines.length) break;
+
+            int x = vertices2[i];
+            int y = vertices2[i + 1];
+            int x2 = vertices2[i + 2];
+            int y2 = vertices2[i + 3];
+
+            currentIndex += 5;
+            int iii = currentIndex;
+            lines[iii] = x;
+            lines[iii + 1] = y;
+            lines[iii + 2] = x2;
+            lines[iii + 3] = y2;
+            lines[iii + 4] = c2;
+            lines[iii + 5] = 1; // is polygon
+        }*/
 
         kernel.setLines(lines);
         System.out.println("Points Time: " + ((System.nanoTime() - startTime) / 1000000) + " milliseconds");
@@ -173,7 +182,11 @@ public class LineGPUView {
         kernel.execute(Range.create(BUFFER.length));
 
         kernel.setMode(1);
-        kernel.execute(Range.create(lines.length / 5));
+        kernel.execute(Range.create(lines.length / 6));
+
+        kernel.setMode(2);
+        kernel.execute(Range.create(WIDTH));
+
         kernel.get(kernel.buffer);
         currentBuffer.updateBuffer();
         currentBuffer.setPixels(BUFFER);

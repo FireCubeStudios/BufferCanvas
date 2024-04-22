@@ -72,12 +72,5 @@ public class PBFParser {
                 .onWay(this::processWays)
                 .onRelation(this::processRelations)
                 .parse();
-       /* idNodeMap = new HashMap<>();
-        currentWayNodes = new ArrayList<>();
-        currentWayTags = new ArrayList<>();
-
-        currentlyCoast = false;
-        parseOSM();
-        return new OSMData(ways, minlat, maxlat, minlon, maxlon);*/
     }
 }

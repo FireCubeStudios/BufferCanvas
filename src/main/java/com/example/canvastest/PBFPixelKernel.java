@@ -77,13 +77,13 @@ public class PBFPixelKernel extends Kernel {
         int i = getGlobalId();
 
         if(mode[0] == 1) {
-            if (i < buffer.length) {
+            if (i < points.length) {
                 if ((((points[i * 2] * transform[2]) + transform[0])) > 0
                         && (((points[(i * 2) + 1] * transform[3]) + transform[1])) > 0
                         && (((points[i * 2] * transform[2]) + transform[0])) < size[0]
                         && (((points[(i * 2) + 1] * transform[3]) + transform[1])) < size[1]) {
 
-                    if(transform[2] > 1 && transform[3] > 1) {
+                   /* if(transform[2] > 1 && transform[3] > 1) {
                         int t = -((int) (transform[2] / 2));
                         int t2 = (int) (transform[2] / 2);
                         for (int px = t; px <= t2; px += 1) {
@@ -99,7 +99,7 @@ public class PBFPixelKernel extends Kernel {
                             }
                         }
                     }
-                    else
+                    else*/
                         buffer[((((int)((points[i * 2] * transform[2]) + transform[0])) % size[0])
                                 + ((int) ((points[(i * 2) + 1] * transform[3]) + transform[1])) * size[0])]
                                 = pointsARGB[0];

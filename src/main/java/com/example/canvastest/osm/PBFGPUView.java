@@ -35,15 +35,17 @@ public class PBFGPUView {
     private int[] points = new int[48194627 * 2];
     private int nodesIndex = 0;
 
-    private final double scale = 82.62484915943543 * 10;
+    private final double scale = 82.62484915943543 * 100;
     private final double ogx = 55.713486499999945 * scale;
     private final double ogy = 11.723541300000003 * scale;
 
     private void processNodes(Node node) {
         synchronized (lock) {
-            points[nodesIndex] = toPoint(node.getLon(), true);
-            points[nodesIndex + 1] = toPoint(node.getLat(), false);
-            nodesIndex += 2;
+           // if(nodesIndex < 1000000) {
+                points[nodesIndex] = toPoint(node.getLon(), true);
+                points[nodesIndex + 1] = toPoint(node.getLat(), false);
+                nodesIndex += 2;
+            //}
         }
     }
 
