@@ -1,10 +1,7 @@
 package com.example.canvastest.osm;
 
 import com.aparapi.Range;
-import com.example.canvastest.PolygonKernel;
-import com.example.canvastest.SimpleLineKernel;
-import com.example.canvastest.Transform;
-import com.example.canvastest.WritableImageView;
+import com.example.canvastest.*;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
@@ -22,7 +19,7 @@ public class PolygonLineGPUView{
     private int[] BACKGROUND = new int[WIDTH * HEIGHT];
     private int[] BUFFER = new int[WIDTH * HEIGHT];
     private WritableImageView currentBuffer = new WritableImageView(WIDTH, HEIGHT);
-    private PolygonKernel kernel;
+    private FIXED2POLYGONKERNEL kernel;
     private int[] lines;
 
     double lastX = 0;
@@ -100,7 +97,7 @@ public class PolygonLineGPUView{
         WIDTH = (int) primaryStage.getWidth();
         HEIGHT = (int) primaryStage.getHeight();
 
-        kernel = new PolygonKernel(BUFFER, BACKGROUND, WIDTH, HEIGHT);
+        kernel = new FIXED2POLYGONKERNEL(BUFFER, BACKGROUND, WIDTH, HEIGHT);
         points();
         Resize();
 
@@ -134,6 +131,7 @@ public class PolygonLineGPUView{
                     random.nextInt(256),
                     random.nextInt(256),
                     random.nextInt(256)));
+            boolean fill = way.coords[0] == way.coords[way.coords.length - 2] && way.coords[1] == way.coords[way.coords.length - 1];
             for (int i = 0; i < way.coords.length - 2; i += 2) {
                 if(currentIndex > lines.length - 10) break;
 
@@ -149,7 +147,7 @@ public class PolygonLineGPUView{
                 lines[iii + 2] = x2;
                 lines[iii + 3] = y2;
                 lines[iii + 4] = c;
-                if(way.coords[0] == way.coords[way.coords.length - 2] && way.coords[1] == way.coords[way.coords.length - 1])
+                if(fill)
                     lines[iii + 5] = 1;
                 else
                     lines[iii + 5] = 0;
@@ -177,7 +175,13 @@ public class PolygonLineGPUView{
         kernel.execute(Range.create(WIDTH));
 
         kernel.setMode(3);
+        kernel.execute(Range.create(WIDTH * 100));
+
+        kernel.setMode(4);
         kernel.execute(Range.create(HEIGHT));
+
+        kernel.setMode(5);
+        kernel.execute(Range.create(BUFFER.length));
 
         kernel.get(kernel.buffer);
         currentBuffer.updateBuffer();

@@ -1,25 +1,24 @@
 package com.example.canvastest.osm;
 
 import com.aparapi.Range;
-import com.example.canvastest.*;
+import com.example.canvastest.AWindingPolygonKernel;
+import com.example.canvastest.FIXED2POLYGONKERNEL;
+import com.example.canvastest.Transform;
+import com.example.canvastest.WritableImageView;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
-import java.util.zip.ZipInputStream;
 
-public class PolygonGPUView {
+public class WindingPolygonGPUView {
     private int WIDTH = 1280;
     private int HEIGHT = 720;
     private int[] BACKGROUND = new int[WIDTH * HEIGHT];
     private int[] BUFFER = new int[WIDTH * HEIGHT];
     private WritableImageView currentBuffer = new WritableImageView(WIDTH, HEIGHT);
-    private FIXED2POLYGONKERNEL kernel;
+    private AWindingPolygonKernel kernel;
     private int[] lines;
 
     double lastX = 0;
@@ -28,7 +27,7 @@ public class PolygonGPUView {
     private OSMData mapData;
     private Stage primaryStage;
     private Scene scene;
-    public PolygonGPUView(String filename, Stage primaryStage) {
+    public WindingPolygonGPUView(String filename, Stage primaryStage) {
         this.primaryStage = primaryStage;
       /*  try {
             InputStream osmInputStream = null;
@@ -97,7 +96,7 @@ public class PolygonGPUView {
         WIDTH = (int) primaryStage.getWidth();
         HEIGHT = (int) primaryStage.getHeight();
 
-        kernel = new FIXED2POLYGONKERNEL(BUFFER, BACKGROUND, WIDTH, HEIGHT);
+        kernel = new AWindingPolygonKernel(BUFFER, BACKGROUND, WIDTH, HEIGHT);
         points();
         Resize();
 
@@ -126,7 +125,7 @@ public class PolygonGPUView {
         int c2 = toARGB(Color.BLUE);
         int c3 = toARGB(Color.GREEN);
         int currentIndex = 0;
-       // int[] vertices = {100, 100, 500, 100, 500, 500, 100, 500, 100, 100};
+        // int[] vertices = {100, 100, 500, 100, 500, 500, 100, 500, 100, 100};
         int[] vertices = {100, 100, 500, 200, 10, 200, 100, 100};
         int[] vertices3 = {100, 600, 200, 300, 200, 800, 100, 600};
         int[] vertices2 = {720, 720, 480, 720, 480, 480, 720, 480, 720, 720};
@@ -148,7 +147,7 @@ public class PolygonGPUView {
             lines[iii + 5] = 1; // is polygon
         }
 
-for (int i = 0; i < vertices2.length - 2; i += 2) {
+        for (int i = 0; i < vertices2.length - 2; i += 2) {
             if(currentIndex >= lines.length) break;
 
             int x = vertices2[i];
@@ -202,16 +201,7 @@ for (int i = 0; i < vertices2.length - 2; i += 2) {
         kernel.execute(Range.create(lines.length / 6));
 
         kernel.setMode(2);
-        kernel.execute(Range.create(WIDTH));
-
-        kernel.setMode(3);
-        kernel.execute(Range.create(WIDTH * 100));
-
-        kernel.setMode(4);
         kernel.execute(Range.create(HEIGHT));
-
-        kernel.setMode(5);
-        kernel.execute(Range.create(BUFFER.length));
 
         kernel.get(kernel.buffer);
         currentBuffer.updateBuffer();

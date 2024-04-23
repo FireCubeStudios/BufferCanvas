@@ -2,7 +2,7 @@ package com.example.canvastest;
 
 import com.aparapi.Kernel;
 
-public class PolygonKernel extends Kernel {
+public class FixedPolygonKernel extends Kernel {
     public int[] buffer;
     public int[] BACKGROUND; // 0 = sea, 1 = land
 
@@ -16,7 +16,7 @@ public class PolygonKernel extends Kernel {
     public int[] transformedSize = new int[2]; // 0 = width, 1 = height
     public double[] transform = new double[4];
 
-    public PolygonKernel(int[] buffer, int[] BACKGROUND, int width, int height) {
+    public FixedPolygonKernel(int[] buffer, int[] BACKGROUND, int width, int height) {
         this.buffer = buffer;
         this.BACKGROUND = BACKGROUND;
         this.lines = new int[10 * 2];
@@ -81,9 +81,10 @@ public class PolygonKernel extends Kernel {
             int colour = lines[lineIndex + 4];
             int midX = (x1 + x2) / 2;
             int midY = (y1 + y2) / 2;
-            if((x1 > 0 && x1 < size[0] && y1 > 0 && y1 < size[1])
-                    || (x2 > 0 && x2 < size[0] && y2 > 0 && y2 < size[1])
-                    || (midX > 0 && midX < size[0] && midY > 0 && midY < size[1])){
+            // The reason y < -300 is to draw top level things flat for filling
+            if((x1 > 0 && x1 < size[0] && y1 > -300 && y1 < size[1])
+                    || (x2 > 0 && x2 < size[0] && y2 > -300 && y2 < size[1])
+                    || (midX > 0 && midX < size[0] && midY > -300 && midY < size[1])){
                 int dx = Math.abs(x2 - x1);
                 int dy = Math.abs(y2 - y1);
                 int sx = (x1 < x2) ? 1 : -1;
@@ -93,10 +94,15 @@ public class PolygonKernel extends Kernel {
                 int y = y1;
 
                 while (x != x2 || y != y2) {
-                    if (x > 0 && y > 0 && x < size[0] && y < size[1]) {
+                    if (x > 0 && y > -300 && x < size[0] && y < size[1]) {
                         buffer[((x % size[0]) + (y * size[0]))] = colour;
                         if(lines[lineIndex + 5] == 1) { // Part of polygon
-                            SCANPOLYGON[((x % size[0]) + (y * size[0]))] = colour;
+                            if(y > 0) {
+                                SCANPOLYGON[((x % size[0]) + (y * size[0]))] = colour;
+                            }
+                            else {
+                                SCANPOLYGON[((x % size[0]) + (0 * size[0]))] = colour;
+                            }
                         }
                     }
 
@@ -114,55 +120,51 @@ public class PolygonKernel extends Kernel {
         }
         // Scanline fill polygon
         else if(mode[0] == 2){
-            int row = 0;
+            int row = -1;
             int colourIndex = i * 10;
             SCANCOLOURS[colourIndex] = buffer[((i * size[0]))]; // set first colour to first row
-            boolean startFilling = false; /* sometimes a polygon border can take multiple pixel rows
+
             boolean startTracking = false;
-            so we track until it ends then start filling*/
+            boolean endTracking = false;
+            boolean startFilling = false; /* sometimes a polygon border can take multiple pixel rows so we track until it ends then start filling*/
             while(row < size[1])
             {
                 row += 1;
                 int position = ((i % size[0]) + (row * size[0]));
                 // new polygon encountered
-                if(SCANPOLYGON[position] != SCANCOLOURS[colourIndex] && SCANPOLYGON[position] != 0 && !startFilling)
+                if(SCANPOLYGON[position] != SCANCOLOURS[colourIndex] && SCANPOLYGON[position] != 0 && !startFilling && !startTracking && !endTracking)
                 {
+                    startTracking = true;
                     buffer[position] = SCANPOLYGON[position];
                     colourIndex = colourIndex + 1;
                     SCANCOLOURS[colourIndex] = SCANPOLYGON[position];
-                    row += 1;
                 }
-                // end of current polygon encountered
-                else if(colourIndex > (i * 10) && SCANPOLYGON[position] == SCANCOLOURS[colourIndex])
+                // Track until end of start border found
+                else if((SCANPOLYGON[position] != SCANCOLOURS[colourIndex] || SCANPOLYGON[position] == 0) && !startFilling && startTracking && !endTracking)
                 {
+                    startFilling = true;
+                    startTracking = false;
+                    buffer[position] = SCANCOLOURS[colourIndex];
+                }
+                // start of end border of current polygon encountered
+                else if(colourIndex > (i * 10) && SCANPOLYGON[position] == SCANCOLOURS[colourIndex] && startFilling && !startTracking && !endTracking)
+                {
+                    startFilling = false;
+                    endTracking = true;
+                    buffer[position] = SCANCOLOURS[colourIndex];
+                }
+                // Track until end of end border found
+                else if(colourIndex > (i * 10) && (SCANPOLYGON[position] != SCANCOLOURS[colourIndex] || SCANPOLYGON[position] == 0) && !startFilling && !startTracking && endTracking)
+                {
+                    endTracking = false;
                     buffer[position] = SCANPOLYGON[position];
                     colourIndex = colourIndex - 1;
                 }
                 // filling polygon
-                else if(colourIndex > (i * 10))
+                else if(colourIndex > (i * 10) && startFilling && !startTracking && !endTracking)
                 {
                     buffer[position] = SCANCOLOURS[colourIndex];
                 }
-              /*  if(SCANPOLYGON[position] != SCANCOLOURS[colourIndex] && SCANPOLYGON[position] != 0 && !startFilling) // new polygon encountered
-                {
-                    buffer[position] = SCANPOLYGON[position];
-                }
-                else if(colourIndex > (i * 10) && SCANPOLYGON[position] != SCANCOLOURS[colourIndex] && !startFilling) // Used to track when to start filling for borders longer than 1
-                {
-                    colourIndex = colourIndex + 1;
-                    SCANCOLOURS[colourIndex] = SCANPOLYGON[position];
-                    startFilling = true;
-                }
-                else if(colourIndex > (i * 10) && SCANPOLYGON[position] == SCANCOLOURS[colourIndex] && startFilling) // end of current polygon encountered
-                {
-                    buffer[position] = SCANPOLYGON[position];
-                    colourIndex = colourIndex - 1;
-                    startFilling = false;
-                }
-                else if(colourIndex > (i * 10)) // filling polygon
-                {
-                    buffer[position] = SCANCOLOURS[colourIndex];
-                }*/
             }
         }
         else if(mode[0] == 3)
@@ -173,25 +175,44 @@ public class PolygonKernel extends Kernel {
             int col = 0;
             int colourIndex = i * 10;
             SCANCOLOURS[colourIndex] = buffer[((i % size[0]))]; // set first colour to first column
+            boolean startTracking = false;
+            boolean endTracking = false;
             boolean startFilling = false; /* sometimes a polygon border can take multiple pixel rows so we track until it ends then start filling*/
             while(col < size[0])
             {
                 col += 1;
                 int position = ((col % size[0]) + (i * size[0]));
-                if(SCANPOLYGON[position] != SCANCOLOURS[colourIndex] && SCANPOLYGON[position] != 0 && !startFilling) // new polygon encountered
+                // new polygon encountered
+                if(SCANPOLYGON[position] != SCANCOLOURS[colourIndex] && SCANPOLYGON[position] != 0 && !startFilling && !startTracking && !endTracking)
                 {
+                    startTracking = true;
                     buffer[position] = SCANPOLYGON[position];
                     colourIndex = colourIndex + 1;
                     SCANCOLOURS[colourIndex] = SCANPOLYGON[position];
-
                 }
-                else if(colourIndex > (i * 10) && SCANPOLYGON[position] == SCANCOLOURS[colourIndex]) // end of current polygon encountered
+                // Track until end of start border found
+                else if((SCANPOLYGON[position] != SCANCOLOURS[colourIndex] || SCANPOLYGON[position] == 0) && !startFilling && startTracking && !endTracking)
                 {
+                    startFilling = true;
+                    startTracking = false;
+                    buffer[position] = SCANCOLOURS[colourIndex];
+                }
+                // start of end border of current polygon encountered
+                else if(colourIndex > (i * 10) && SCANPOLYGON[position] == SCANCOLOURS[colourIndex] && startFilling && !startTracking && !endTracking)
+                {
+                    startFilling = false;
+                    endTracking = true;
+                    buffer[position] = SCANCOLOURS[colourIndex];
+                }
+                // Track until end of end border found
+                else if(colourIndex > (i * 10) && (SCANPOLYGON[position] != SCANCOLOURS[colourIndex] || SCANPOLYGON[position] == 0) && !startFilling && !startTracking && endTracking)
+                {
+                    endTracking = false;
                     buffer[position] = SCANPOLYGON[position];
                     colourIndex = colourIndex - 1;
                 }
-                else if(colourIndex > (i * 10)) // filling polygon
-                {
+                // filling polygon
+                else if(colourIndex > (i * 10) && startFilling && !startTracking && !endTracking) {
                     buffer[position] = SCANCOLOURS[colourIndex];
                 }
             }
@@ -205,38 +226,3 @@ public class PolygonKernel extends Kernel {
         }
     }
 }
-/*
-else if(mode[0] == 2){
-            int row = -1;
-            int oldColour = buffer[((i * size[0]))]; // set old colour to first row
-            int currentColour = buffer[((i * size[0]))]; // set current colour to first row
-            boolean isDrawing = false;
-            while(row < 700)
-            {
-                row += 1;
-                int position = ((row % size[0]) + (i * size[0]));
-                if(isDrawing)
-                {
-                    if(SCANPOLYGON[position] != currentColour && SCANPOLYGON[position] != 0) { // end of polygon encountered
-                        buffer[position] = currentColour;
-                        currentColour = oldColour;
-                        isDrawing = false;
-                    }
-                    else {
-                        buffer[position] = currentColour;
-                    }
-                }
-                else {
-                    if(SCANPOLYGON[position] != currentColour && SCANPOLYGON[position] != 0) { // new polygon encountered?
-                        buffer[position] = currentColour;
-                        currentColour = SCANPOLYGON[position];
-                        isDrawing = true;
-                    }
-                    else {
-                        buffer[position] = currentColour;
-                        currentColour = buffer[position];
-                    }
-                }
-            }
-        }
- */

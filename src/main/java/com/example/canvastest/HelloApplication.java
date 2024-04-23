@@ -30,12 +30,15 @@ public class HelloApplication extends Application {
         var view = new PBFGPUView(filename, stage);*/
       /*  var filename = "C:\\Users\\Dulu\\IdeaProjects\\BufferCanvas\\map.osm";
         var view = new  LineGPUView(filename, stage);*/
-     /*   var filename = "C:\\Users\\Dulu\\IdeaProjects\\BufferCanvas\\denmark.osm.pbf";
+       /*var filename = "D:\\Projects\\CanvasTest\\denmark-latest.osm.pbf";
         var view = new  PBFLineGPUView(filename, stage);*/
-        var filename = "C:\\Users\\Dulu\\IdeaProjects\\BufferCanvas\\map.osm";
-        var view = new  PolygonGPUView(filename, stage);
-      /* var filename = "C:\\Users\\Dulu\\IdeaProjects\\BufferCanvas\\map.osm";
+      /*  var filename = "D:\\Projects\\CanvasTest\\map.osm";
+        var view = new  PolygonGPUView(filename, stage);*/
+        /*var filename = "D:\\Projects\\CanvasTest\\map.osm";
         var view = new  PolygonLineGPUView(filename, stage);*/
+
+        var filename = "D:\\Projects\\CanvasTest\\map.osm";
+        var view = new  WindingPolygonGPUView(filename, stage);
     }
 
     public static void main(String[] args) {
