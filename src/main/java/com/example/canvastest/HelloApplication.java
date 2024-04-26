@@ -34,11 +34,13 @@ public class HelloApplication extends Application {
         var view = new  PBFLineGPUView(filename, stage);*/
       /*  var filename = "D:\\Projects\\CanvasTest\\map.osm";
         var view = new  PolygonGPUView(filename, stage);*/
-        /*var filename = "D:\\Projects\\CanvasTest\\map.osm";
+      /*  var filename = "D:\\Projects\\CanvasTest\\map.osm";
         var view = new  PolygonLineGPUView(filename, stage);*/
 
+      /*  var filename = "D:\\Projects\\CanvasTest\\map.osm";
+        var view = new  WindingPolygonGPUView(filename, stage);*/
         var filename = "D:\\Projects\\CanvasTest\\map.osm";
-        var view = new  WindingPolygonGPUView(filename, stage);
+        var view = new CPUBufferCanvas(filename, stage);
     }
 
     public static void main(String[] args) {
